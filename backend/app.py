@@ -4,64 +4,42 @@ import sqlite3
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)   # 👈 THIS IS THE MAGIC LINE
 
-# ✅ CORRECT DATABASE PATH (points to /database folder)
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, "database", "portfolio.db")
+DB_PATH = os.path.join(os.path.dirname(__file__), "../database/portfolio.db")
 
-# ✅ Initialize database
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL,
-            message TEXT NOT NULL
+            name TEXT,
+            email TEXT,
+            message TEXT
         )
     """)
     conn.commit()
     conn.close()
 
-init_db()
-
 @app.route("/submit", methods=["POST"])
 def submit():
     data = request.json
+    name = data["name"]
+    email = data["email"]
+    message = data["message"]
 
-    name = data.get("name")
-    email = data.get("email")
-    message = data.get("message")
-
-    if not name or not email or not message:
-        return jsonify({"error": "All fields are required"}), 400
-
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO messages (name, email, message) VALUES (?, ?, ?)",
-            (name, email, message)
-        )
-        conn.commit()
-        conn.close()
-        return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/messages", methods=["GET"])
-def messages():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM messages")
-    rows = cursor.fetchall()
+    cursor.execute(
+        "INSERT INTO messages (name, email, message) VALUES (?, ?, ?)",
+        (name, email, message)
+    )
+    conn.commit()
     conn.close()
 
-    return jsonify(rows)
-
+    return jsonify({"status": "success"})
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
